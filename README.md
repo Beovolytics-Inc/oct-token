@@ -81,10 +81,10 @@ struct Beneficiary {
   * Calculate `totalDays` : (`RELEASE_END_TIME` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
   * If param `supervised` is `true`, return `supervisedUnreleasedBalance` * `passedDays` / `totalDays`
   * If param `supervised` is `false`, return `unreleasedBalance` * `passedDays` / `totalDays`
-* Anyone can call function `unreleasedBalanceOf(address)` to get the `unreleasedBalance` of an beneficiary corresponding to param `address`.
-* Anyone can call function `withdrawedBalanceOf(address)` to get the `withdrawedBalance` of an beneficiary corresponding to param `address`.
-* Anyone can call function `supervisedUnreleasedBalanceOf(address)` to get the `supervisedUnreleasedBalance` of an beneficiary corresponding to param `address`.
-* Anyone can call function `releasedBalanceOf(address)` to get the total released balance of an beneficiary corresponding to param `address`.
+* Anyone can call function `unreleasedBalanceOf(address)` to get the `unreleasedBalance` of a certain beneficiary corresponding to param `address`.
+* Anyone can call function `withdrawedBalanceOf(address)` to get the `withdrawedBalance` of a certain beneficiary corresponding to param `address`.
+* Anyone can call function `supervisedUnreleasedBalanceOf(address)` to get the `supervisedUnreleasedBalance` of a certain beneficiary corresponding to param `address`.
+* Anyone can call function `releasedBalanceOf(address)` to get the total released balance of a certain beneficiary corresponding to param `address`.
   * Get beneficiary corresponding to param `address`.
   * The result of this function is calculated by: `releasedBalance` + `_balanceToReleaseTo(address, true)` + `_balanceToReleaseTo(address, false)`
 * This contract has a private function `_benefit(address, amount, supervised)` which implements the following logic:
@@ -108,7 +108,7 @@ struct Beneficiary {
       * If param `supervised` is `true` : `supervisedUnreleasedBalance` - `_balanceToReleaseTo(address, true)` + `amount`
       * If param `supervised` is `false` : `supervisedUnreleasedBalance` - `_balanceToReleaseTo(address, true)`
     * `releaseStartTime` : `block.timestamp` - (`block.timestamp` % `SECONDS_OF_A_DAY`)
-* Only the owner (deployer) of this contract can call function `benefit(address, amount, supervised)` to increase `unreleasedBalance` or `supervisedUnreleasedBalance` of an beneficiary corresponding to param `address`.
+* Only the owner (deployer) of this contract can call function `benefit(address, amount, supervised)` to increase `unreleasedBalance` or `supervisedUnreleasedBalance` of a certain beneficiary corresponding to param `address`.
   * This function is a simple wraper of private function `_benefit(address, amount, supervised)`.
   * The param `address` MUST be an EOA address. (This will be verified by the owner of this contract rather than by contract code.)
 * Any beneficiary can call function `withdraw(amount)` to withdraw a certain amount tokens to the address of himself.
