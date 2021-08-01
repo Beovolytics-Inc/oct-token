@@ -24,10 +24,12 @@ This is a contract based on standard [openzeppelin-contracts](https://github.com
     uint256 private constant SECONDS_OF_A_DAY = 86400;
 
     // The earliest timestamp of token release period (2021/09/01 00:00:00 GMT).
+    //
     // Before this time NO ONE can withdraw any token from this contract.
     uint256 private constant EARLIEST_RELEASE_START_TIME = 1630454400;
 
     // The end timestamp of token release period (2024/09/01 00:00:00 GMT).
+    //
     // After this time, ANY ONE can withdraw any amount of tokens they held.
     uint256 private constant RELEASE_END_TIME = 1725148800;
 ```
@@ -36,16 +38,36 @@ This is a contract based on standard [openzeppelin-contracts](https://github.com
 
 ```c++
 struct Beneficiary {
-    // The amount of unreleased balance of the beneficiary
+    // The amount of unreleased balance of the beneficiary.
+    //
+    // The owner of this contract or other beneficiaries can increase it.
     uint256 unreleasedBalance;
+  
     // The amount of supervised unreleased balance of the beneficiary.
-    // The owner of this contract can decrease it.
+    //
+    // Only the owner of this contract can decrease it.
     uint256 supervisedUnreleasedBalance;
-    // The amount of released balance of the beneficiary
+  
+    // The amount of released balance of the beneficiary.
+    //
+    // Because the smart contract can NOT automatically execute over time,
+    // this value will be updated ONLY when 'unreleasedBalance' or 'supervisedUnreleasedBalance'
+    // is changed during release period (from EARLIEST_RELEASE_START_TIME to RELEASE_END_TIME).
+    //
+    // This value may NOT be equal to the actual total released balance,
+    // call function 'releasedBalanceOf(address)' to check it.
     uint256 releasedBalance;
-    // The amount of withdrawed balance of the beneficiary
+
+    // The amount of withdrawed balance of the beneficiary.
+    //
+    // This value will be updated on each withdraw operation.
     uint256 withdrawedBalance;
-    // The start time when the beneficiary can withdraw held tokens
+
+    // The start time when the beneficiary can withdraw held tokens.
+    //
+    // This value will be updated ONLY when 'unreleasedBalance' or 'supervisedUnreleasedBalance'
+    // is changed during release period (from EARLIEST_RELEASE_START_TIME to RELEASE_END_TIME)
+    // for recalculating the time lock amount of held balance of beneficiary.
     uint256 releaseStartTime;
 }
 ```
@@ -55,10 +77,10 @@ struct Beneficiary {
 * This contract has a private function `_balanceToReleaseTo(address, supervised)` which implements the following logic:
   * Get beneficiary corresponding to param `address`.
   * If `block.timestamp` is smaller than `releaseStartTime`, return 0
-  * Calculate {count of days passed since `releaseStartTime`} : (`block.timestamp` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
-  * Calculate {count of days of release duration} : (`RELEASE_END_TIME` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
-  * If param `supervised` is `true`, return `supervisedUnreleasedBalance` * {count of days passed since `releaseStartTime`} / {count of days of release duration}
-  * If param `supervised` is `false`, return `unreleasedBalance` * {count of days passed since `releaseStartTime`} / {count of days of release duration}
+  * Calculate `passedDays` : (`block.timestamp` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
+  * Calculate `totalDays` : (`RELEASE_END_TIME` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
+  * If param `supervised` is `true`, return `supervisedUnreleasedBalance` * `passedDays` / `totalDays`
+  * If param `supervised` is `false`, return `unreleasedBalance` * `passedDays` / `totalDays`
 * Anyone can call function `unreleasedBalanceOf(address)` to get the `unreleasedBalance` of an beneficiary corresponding to param `address`.
 * Anyone can call function `withdrawedBalanceOf(address)` to get the `withdrawedBalance` of an beneficiary corresponding to param `address`.
 * Anyone can call function `supervisedUnreleasedBalanceOf(address)` to get the `supervisedUnreleasedBalance` of an beneficiary corresponding to param `address`.
