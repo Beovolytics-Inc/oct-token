@@ -42,7 +42,8 @@ This is a contract based on standard [openzeppelin-contracts](https://github.com
 // Because the smart contract can NOT automatically execute over time,
 // the value of 'unreleasedBalance', 'unreleasedSupervisedBalance' and 'releasedBalance'
 // will be updated ONLY when 'unreleasedBalance' or 'unreleasedSupervisedBalance'
-// is changed during release period (from EARLIEST_RELEASE_START_TIME to RELEASE_END_TIME).
+// need to be modified during release period (from EARLIEST_RELEASE_START_TIME to RELEASE_END_TIME)
+// by calling function '_benefit(address, amount, supervised)' or 'decreaseBenefitOf(address, amount)'
 struct Beneficiary {
     // The amount of unreleased balance of the beneficiary.
     //
@@ -81,6 +82,9 @@ struct Beneficiary {
 * This contract has a private function `_balanceToReleaseTo(address, supervised)` which implements the following logic:
   * Get beneficiary corresponding to param `address`.
   * If `block.timestamp` is smaller than `releaseStartTime`, return 0
+  * If `block.timestamp` is larger than `RELEASE_END_TIME` :
+    * If param `supervised` is `true`, return `unreleasedSupervisedBalance`
+    * If param `supervised` is `false`, return `unreleasedBalance`
   * Calculate `passedDays` : (`block.timestamp` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
   * Calculate `totalDays` : (`RELEASE_END_TIME` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
   * If param `supervised` is `true`, return `unreleasedSupervisedBalance` * `passedDays` / `totalDays`
