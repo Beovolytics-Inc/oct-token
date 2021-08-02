@@ -43,15 +43,15 @@ struct Beneficiary {
     // The owner of this contract or other beneficiaries can increase it.
     uint256 unreleasedBalance;
   
-    // The amount of supervised unreleased balance of the beneficiary.
+    // The amount of unreleased supervised balance of the beneficiary.
     //
     // Only the owner of this contract can decrease it.
-    uint256 supervisedUnreleasedBalance;
+    uint256 unreleasedSupervisedBalance;
   
     // The amount of released balance of the beneficiary.
     //
     // Because the smart contract can NOT automatically execute over time,
-    // this value will be updated ONLY when 'unreleasedBalance' or 'supervisedUnreleasedBalance'
+    // this value will be updated ONLY when 'unreleasedBalance' or 'unreleasedSupervisedBalance'
     // is changed during release period (from EARLIEST_RELEASE_START_TIME to RELEASE_END_TIME).
     //
     // This value may NOT be equal to the actual total released balance,
@@ -65,7 +65,7 @@ struct Beneficiary {
 
     // The start time when the beneficiary can withdraw held tokens.
     //
-    // This value will be updated ONLY when 'unreleasedBalance' or 'supervisedUnreleasedBalance'
+    // This value will be updated ONLY when 'unreleasedBalance' or 'unreleasedSupervisedBalance'
     // is changed during release period (from EARLIEST_RELEASE_START_TIME to RELEASE_END_TIME)
     // for recalculating the time lock amount of held balance of beneficiary.
     uint256 releaseStartTime;
@@ -79,36 +79,36 @@ struct Beneficiary {
   * If `block.timestamp` is smaller than `releaseStartTime`, return 0
   * Calculate `passedDays` : (`block.timestamp` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
   * Calculate `totalDays` : (`RELEASE_END_TIME` - `releaseStartTime`) / `SECONDS_OF_A_DAY`
-  * If param `supervised` is `true`, return `supervisedUnreleasedBalance` * `passedDays` / `totalDays`
+  * If param `supervised` is `true`, return `unreleasedSupervisedBalance` * `passedDays` / `totalDays`
   * If param `supervised` is `false`, return `unreleasedBalance` * `passedDays` / `totalDays`
 * Anyone can call function `unreleasedBalanceOf(address)` to get the `unreleasedBalance` of a certain beneficiary corresponding to param `address`.
 * Anyone can call function `withdrawedBalanceOf(address)` to get the `withdrawedBalance` of a certain beneficiary corresponding to param `address`.
-* Anyone can call function `supervisedUnreleasedBalanceOf(address)` to get the `supervisedUnreleasedBalance` of a certain beneficiary corresponding to param `address`.
+* Anyone can call function `unreleasedSupervisedBalanceOf(address)` to get the `unreleasedSupervisedBalance` of a certain beneficiary corresponding to param `address`.
 * Anyone can call function `releasedBalanceOf(address)` to get the total released balance of a certain beneficiary corresponding to param `address`.
   * Get beneficiary corresponding to param `address`.
   * The result of this function is calculated by: `releasedBalance` + `_balanceToReleaseTo(address, true)` + `_balanceToReleaseTo(address, false)`
 * This contract has a private function `_benefit(address, amount, supervised)` which implements the following logic:
-  * If the `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to param `address` as follow:
+  * If `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to param `address` as follow:
     * `unreleasedBalance` :
       * If param `supervised` is `true` : NO change
       * If param `supervised` is `false` : `unreleasedBalance` + `amount`
     * `releaseStartTime` : `EARLIEST_RELEASE_START_TIME`
     * `releasedBalance` : NO change
     * `withdrawedBalance` : NO change
-    * `supervisedUnreleasedBalance` :
-      * If param `supervised` is `true` : `supervisedUnreleasedBalance` + `amount`
+    * `unreleasedSupervisedBalance` :
+      * If param `supervised` is `true` : `unreleasedSupervisedBalance` + `amount`
       * If param `supervised` is `false` : NO change
-  * If the `block.timestamp` is larger than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to param `address` as follow:
+  * If `block.timestamp` is larger than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to param `address` as follow:
     * `releasedBalance` : `releasedBalanceOf(address)`
     * `unreleasedBalance` :
       * If param `supervised` is `true` : `unreleasedBalance` - `_balanceToReleaseTo(address, false)`
       * If param `supervised` is `false` : `unreleasedBalance` - `_balanceToReleaseTo(address, false)` + `amount`
     * `withdrawedBalance` : NO change
-    * `supervisedUnreleasedBalance` :
-      * If param `supervised` is `true` : `supervisedUnreleasedBalance` - `_balanceToReleaseTo(address, true)` + `amount`
-      * If param `supervised` is `false` : `supervisedUnreleasedBalance` - `_balanceToReleaseTo(address, true)`
+    * `unreleasedSupervisedBalance` :
+      * If param `supervised` is `true` : `unreleasedSupervisedBalance` - `_balanceToReleaseTo(address, true)` + `amount`
+      * If param `supervised` is `false` : `unreleasedSupervisedBalance` - `_balanceToReleaseTo(address, true)`
     * `releaseStartTime` : `block.timestamp` - (`block.timestamp` % `SECONDS_OF_A_DAY`)
-* Only the owner (deployer) of this contract can call function `benefit(address, amount, supervised)` to increase `unreleasedBalance` or `supervisedUnreleasedBalance` of a certain beneficiary corresponding to param `address`.
+* Only the owner (deployer) of this contract can call function `benefit(address, amount, supervised)` to increase `unreleasedBalance` or `unreleasedSupervisedBalance` of a certain beneficiary corresponding to param `address`.
   * This function is a simple wraper of private function `_benefit(address, amount, supervised)`.
   * The param `address` MUST be an EOA address. (This will be verified by the owner of this contract rather than by contract code.)
 * Any beneficiary can call function `withdraw(amount)` to withdraw a certain amount tokens to the address of himself.
@@ -119,32 +119,32 @@ struct Beneficiary {
   * Get beneficiary corresponding to `_msgSender()`.
   * The param `amount` must be less or equal to unreleased balance, which is calculated by: `unreleasedBalance` - `_balanceToReleaseTo(_msgSender(), false)`
   * Call private function `_benefit(address, amount, false)`.
-  * If the `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `_msgSender()` as follow:
+  * If `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `_msgSender()` as follow:
     * `unreleasedBalance` : `unreleasedBalance` - `amount`
     * `releaseStartTime` : `EARLIEST_RELEASE_START_TIME`
     * `releasedBalance` : NO change
     * `withdrawedBalance` : NO change
-    * `supervisedUnreleasedBalance` : NO change
-  * If the `block.timestamp` is larger than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `_msgSender()` as follow:
+    * `unreleasedSupervisedBalance` : NO change
+  * If `block.timestamp` is larger than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `_msgSender()` as follow:
     * `releasedBalance` : `releasedBalanceOf(_msgSender())`
     * `unreleasedBalance` : `unreleasedBalance` - `_balanceToReleaseTo(_msgSender(), false)` - `amount`
     * `withdrawedBalance` : NO change
-    * `supervisedUnreleasedBalance` : `supervisedUnreleasedBalance` - `_balanceToReleaseTo(_msgSender(), true)`
+    * `unreleasedSupervisedBalance` : `unreleasedSupervisedBalance` - `_balanceToReleaseTo(_msgSender(), true)`
     * `releaseStartTime` : `block.timestamp` - (`block.timestamp` % `SECONDS_OF_A_DAY`)
 * Only the owner (deployer) of this contract can call function `decreaseBenefitOf(address, amount)` to decrease the benefit of a certain beneficiary corresponding to param `address`.
   * Get beneficiary corresponding to param `address`.
-  * The param `amount` must be less or equal to unreleased balance, which is calculated by: `supervisedUnreleasedBalance` - `_balanceToReleaseTo(address, true)`
-  * If the `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `address` as follow:
+  * The param `amount` must be less or equal to unreleased supervised balance, which is calculated by: `unreleasedSupervisedBalance` - `_balanceToReleaseTo(address, true)`
+  * If `block.timestamp` is smaller than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `address` as follow:
     * `unreleasedBalance` : NO change
     * `releaseStartTime` : `EARLIEST_RELEASE_START_TIME`
     * `releasedBalance` : NO change
     * `withdrawedBalance` : NO change
-    * `unreleasedBalance` : `supervisedUnreleasedBalance` - `amount`
-  * If the `block.timestamp` is larger than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `address` as follow:
+    * `unreleasedSupervisedBalance` : `unreleasedSupervisedBalance` - `amount`
+  * If `block.timestamp` is larger than `EARLIEST_RELEASE_START_TIME`, update the properties of the beneficiary corresponding to `address` as follow:
     * `releasedBalance` : `releasedBalanceOf(address)`
     * `unreleasedBalance` : `unreleasedBalance` - `_balanceToReleaseTo(address, false))`
     * `withdrawedBalance` : NO change
-    * `supervisedUnreleasedBalance` : `supervisedUnreleasedBalance` - `_balanceToReleaseTo(address, true))` - `amount`
+    * `unreleasedSupervisedBalance` : `unreleasedSupervisedBalance` - `_balanceToReleaseTo(address, true))` - `amount`
     * `releaseStartTime` : `block.timestamp` - (`block.timestamp` % `SECONDS_OF_A_DAY`)
 
 ## Installation
