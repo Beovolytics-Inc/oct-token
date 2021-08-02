@@ -123,11 +123,11 @@ struct Beneficiary {
 * Only the owner (deployer) of this contract can call function `benefit(address, amount, supervised)` to increase `unreleasedBalance` or `unreleasedSupervisedBalance` of a certain beneficiary corresponding to param `address`.
   * This function is a simple wraper of private function `_benefit(address, amount, supervised)`.
   * The param `address` MUST be an EOA address. (This will be verified by the owner of this contract rather than by contract code.)
-* Any beneficiary can call function `withdraw(amount)` to withdraw a certain amount tokens to the address of himself.
+* Anyone can call function `withdraw(amount)` to withdraw a certain amount tokens to the address of himself.
   * Get beneficiary corresponding to `_msgSender()`.
   * The param `amount` must be less or equal to avaialable balance, which is calculated by: `releasedBalanceOf(_msgSender())` - `withdrawedBalance`
   * The `withdrawedBalance` will be increased by `amount`, if the token transfer is success.
-* Any beneficiary can call function `transferUnreleasedBalance(address, amount)` to transfer a part or whole of his unreleased balance to another account (address).
+* Anyone can call function `transferUnreleasedBalance(address, amount)` to transfer a part or whole of his unreleased balance to another account (address).
   * Get beneficiary corresponding to `_msgSender()`.
   * The param `amount` must be less or equal to `unreleasedBalanceOf(_msgSender())`
   * Call private function `_benefit(address, amount, false)`.
